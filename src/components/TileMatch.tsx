@@ -3,6 +3,8 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { vocabularyDatabase } from '../data/vocabularyData';
 import { InformationCircleIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
 import { useAudio } from '../contexts/AudioProvider';
+import { useAuth } from '../hooks/useAuth';
+import { handleModeComplete } from '../utils/xpStreak';
 
 interface TileMatchProps {
   onComplete: () => void;
@@ -99,6 +101,7 @@ const TileMatch: React.FC<TileMatchProps> = ({ onComplete, numPairs = 5 }) => {
   const [activeInfo, setActiveInfo] = useState<string | null>(null);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showRomaji, setShowRomaji] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const handleDrop = (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -115,9 +118,19 @@ const TileMatch: React.FC<TileMatchProps> = ({ onComplete, numPairs = 5 }) => {
   const allMatched = Object.keys(matchedPairs).length === pairs.length;
   useEffect(() => {
     if (allMatched && onComplete) {
-      setTimeout(onComplete, 1000);
+      const complete = async () => {
+        if (user) {
+          try {
+            await handleModeComplete('tilematch', user.id, 10);
+          } catch (e) {
+            // Optionally handle error
+          }
+        }
+        setTimeout(onComplete, 1000);
+      };
+      complete();
     }
-  }, [allMatched, onComplete]);
+  }, [allMatched, onComplete, user]);
   
 
   return (

@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { getTodaysStorySegment, StoryLine, StoryTile } from '../data/storyData';
 import { SpeakerWaveIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { useAuth } from '../hooks/useAuth';
+import { handleModeComplete } from '../utils/xpStreak';
 
 // Utility to shuffle an array
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -21,6 +23,7 @@ function speakJapanese(text: string) {
 
 const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
   const todaySegments = useMemo(() => getTodaysStorySegment(), []);
+  const { user } = useAuth();
 
   // State
   const [selectedAnswers, setSelectedAnswers] = useState<{ [lineId: string]: string | null }>({});
@@ -164,7 +167,16 @@ const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
              <div className="w-full mt-8 pb-24">
                  <button
                     className="btn btn-primary w-full !py-4 !text-lg !tracking-wide"
-                    onClick={onComplete}
+                    onClick={async () => {
+                      if (user) {
+                        try {
+                          await handleModeComplete('story', user.id, 10);
+                        } catch (e) {
+                          // Optionally handle error
+                        }
+                      }
+                      onComplete();
+                    }}
                 >
                     Finish
                 </button>

@@ -1,10 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
+import { getSupabaseUserId, fetchUserProgress } from '../utils/xpStreak';
 
 const UserProfile: React.FC = () => {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [progress, setProgress] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!user) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const userId = await getSupabaseUserId(user.id);
+        const prog = await fetchUserProgress(userId);
+        setProgress(prog);
+      } catch (err: any) {
+        setError('Could not load progress');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProgress();
+  }, [user]);
 
   if (!user) return null;
 
@@ -70,6 +92,27 @@ const UserProfile: React.FC = () => {
                   </p>
                 </div>
               )}
+
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">XP (Gems)</p>
+                <p className="text-lg font-bold text-blue-700">
+                  {loading ? 'Loading...' : error ? '—' : progress?.total_gems ?? 0}
+                </p>
+              </div>
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Current Streak</p>
+                  <p className="text-lg font-bold text-orange-600 flex items-center">
+                    <span role="img" aria-label="fire">🔥</span> {loading ? '...' : error ? '—' : progress?.current_streak ?? 0}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Longest</p>
+                  <p className="text-lg font-bold text-gray-700">
+                    {loading ? '...' : error ? '—' : progress?.longest_streak ?? 0}
+                  </p>
+                </div>
+              </div>
 
               <div className="border-t border-gray-200 pt-4">
                 <button

@@ -11,6 +11,8 @@ import Leaderboard from './components/Leaderboard';
 import { getDailyWordleWord } from './data/vocabularyData';
 import { getTodaysStorySegment } from './data/storyData';
 import { phraseDataset } from './data/phraseData';
+import TopStatsBar from './components/TopStatsBar';
+import OnboardingTutorial from './components/OnboardingTutorial';
 
 import './styles/index.css';
 
@@ -70,6 +72,9 @@ const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const location = useLocation();
     const [activeTab, setActiveTab] = useState<AppTab>('home');
+    const [showOnboarding, setShowOnboarding] = useState(() => {
+      return localStorage.getItem('kanjimatch_onboarding_complete') !== 'true';
+    });
 
     const pathMap: { [key: string]: number } = {
         '/': 1,
@@ -96,8 +101,18 @@ const App: React.FC = () => {
     return <LoginModal onLogin={onLogin} onContinueAsGuest={onLogin} />;
   }
 
+  if (showOnboarding) {
+    return <OnboardingTutorial onFinish={() => {
+      localStorage.setItem('kanjimatch_onboarding_complete', 'true');
+      setShowOnboarding(false);
+    }} />;
+  }
+
   return (
     <main className="app-container pb-24">
+      <div className="w-full bg-white/90 backdrop-blur shadow-sm sticky top-0 z-40">
+        <TopStatsBar />
+      </div>
       {showProgressBar && <ProgressBar currentStep={currentStep} totalSteps={4} />}
       <div className={showProgressBar ? "mt-4" : ""}>
         <Routes>

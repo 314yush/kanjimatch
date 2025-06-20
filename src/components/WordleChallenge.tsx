@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { getDailyWordleWord, WordleWord, wordleWords } from '../data/vocabularyData';
+import { useAuth } from '../hooks/useAuth';
+import { handleModeComplete } from '../utils/xpStreak';
 
 const MAX_ATTEMPTS = 6;
 
@@ -40,19 +42,30 @@ const WordleChallenge: React.FC<WordleChallengeProps> = ({ onComplete }) => {
   const [guesses, setGuesses] = useState<string[]>([]);
   const [currentGuess, setCurrentGuess] = useState('');
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+  const { user } = useAuth();
 
   useEffect(() => {
     if (guesses.length > 0) {
       const lastGuess = guesses[guesses.length - 1];
       if (lastGuess === dailyWord.romaji) {
         setGameStatus('won');
-        setTimeout(() => onComplete?.(), 2000);
+        const complete = async () => {
+          if (user) {
+            try {
+              await handleModeComplete('wordle', user.id, 10);
+            } catch (e) {
+              // Optionally handle error
+            }
+          }
+          setTimeout(() => onComplete?.(), 2000);
+        };
+        complete();
       } else if (guesses.length >= MAX_ATTEMPTS) {
         setGameStatus('lost');
         setTimeout(() => onComplete?.(), 3000);
       }
     }
-  }, [guesses, dailyWord.romaji, onComplete]);
+  }, [guesses, dailyWord.romaji, onComplete, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCurrentGuess(e.target.value.toLowerCase().replace(/[^a-z\s]/g, ''));
