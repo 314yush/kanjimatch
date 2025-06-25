@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Global resets and base styles */
+  html {
+    -webkit-tap-highlight-color: transparent;
+    height: -webkit-fill-available;
+  }
+  
+  body {
+    @apply bg-brand-background text-brand-text-primary font-sans antialiased;
+    min-height: -webkit-fill-available;
+    overscroll-behavior-y: none;
+  }
+
+  /* Typography */
+  h1, h2, h3, h4 {
+    @apply font-bold text-brand-text-primary;
+  }
+  h1 { @apply text-3xl; }
+  h2 { @apply text-2xl; }
+  h3 { @apply text-xl; }
+  p { @apply text-brand-text-secondary; }
+
+  /* Japanese text */
+  .jp-text {
+    @apply font-jp;
+  }
+}
+
+@layer components {
+  /* Main app container with the new aesthetic */
+  .app-container {
+    @apply w-full max-w-md mx-auto min-h-screen p-4 sm:p-6;
+  }
+
+  /* The new "bubbly" card style */
+  .ui-card {
+    @apply bg-brand-surface rounded-lg shadow-strong p-4 sm:p-6 border border-white/50;
+  }
+
+  /* The new icon button style */
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-14 h-14 rounded-md bg-brand-primary 
+           text-brand-text-primary shadow-md transition-all duration-200 
+           hover:brightness-105 active:scale-95 disabled:opacity-60;
+  }
+  
+  /* A list style for settings, etc. */
+  .settings-list {
+    @apply divide-y divide-brand-surface-darker;
+  }
+
+  .settings-list-item {
+    @apply flex items-center gap-4 py-4 text-brand-text-primary font-semibold;
+  }
+
+  .settings-list-item-icon {
+    @apply w-10 h-10 flex items-center justify-center rounded-full bg-brand-surface-darker text-brand-text-secondary;
+  }
+
+  /* Button base styles */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-all duration-200 
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600 
+           active:bg-brand-700 disabled:bg-brand-300;
+  }
+
+  .btn-secondary {
+    @apply btn bg-brand-100 text-brand-700 hover:bg-brand-200 
+           active:bg-brand-300 disabled:bg-brand-50;
+  }
+
+  .btn-outline {
+    @apply btn border-2 border-brand-200 text-brand-700 hover:bg-brand-50 
+           active:bg-brand-100 disabled:border-brand-100;
+  }
+
+  /* Input base styles */
+  .input {
+    @apply w-full px-3 py-2 rounded-lg border-2 border-neutral-200 
+           focus:border-brand-500 focus:ring-1 focus:ring-brand-500 
+           disabled:bg-neutral-100 disabled:cursor-not-allowed;
+  }
+
+  /* Badge/tag styles */
+  .badge {
+    @apply inline-flex items-center px-2 py-1 rounded-md text-sm font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-success-light text-success-dark;
+  }
+
+  .badge-error {
+    @apply badge bg-error-light text-error-dark;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning-light text-warning-dark;
+  }
+
+  /* Bottom navigation bar */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 
+           pb-safe-bottom pt-2 px-4 flex items-center justify-around;
+  }
+
+  .bottom-nav-item {
+    @apply flex flex-col items-center justify-center p-2 text-neutral-500 
+           hover:text-brand-600 active:text-brand-700;
+  }
+
+  /* Mobile-optimized touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Safe area spacing utilities */
+  .safe-padding {
+    @apply pt-safe-top pb-safe-bottom pl-safe-left pr-safe-right;
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Prevent text selection */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Better touch feedback */
+  .tap-highlight {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+} 
