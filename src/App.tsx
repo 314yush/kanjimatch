@@ -19,6 +19,7 @@ import './styles/index.css';
 const GameRoutes = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { recordGameCompletion } = useAuth();
 
   const [wordsLearned, setWordsLearned] = useState<string[]>([]);
   const [startTime, setStartTime] = useState<number | null>(null);
@@ -34,6 +35,10 @@ const GameRoutes = () => {
     setEndTime(null);
     navigate('/');
   },[navigate]);
+
+  const handleGameComplete = useCallback(async (gameType: 'tilematch' | 'wordle' | 'story') => {
+    await recordGameCompletion(gameType, 10);
+  }, [recordGameCompletion]);
   
   useEffect(() => {
     const path = location.pathname;
@@ -52,12 +57,31 @@ const GameRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<TileMatch onComplete={() => navigate('/wordle')} />} />
-      <Route path="/wordle" element={<WordleChallenge onComplete={() => navigate('/story')} />} />
-      <Route path="/story" element={<StoryMode onComplete={() => {
-        setEndTime(Date.now());
-        navigate('/results');
-      }} />} />
+      <Route path="/" element={
+        <TileMatch 
+          onComplete={() => {
+            handleGameComplete('tilematch');
+            navigate('/wordle');
+          }} 
+        />
+      } />
+      <Route path="/wordle" element={
+        <WordleChallenge 
+          onComplete={() => {
+            handleGameComplete('wordle');
+            navigate('/story');
+          }} 
+        />
+      } />
+      <Route path="/story" element={
+        <StoryMode 
+          onComplete={() => {
+            handleGameComplete('story');
+            setEndTime(Date.now());
+            navigate('/results');
+          }} 
+        />
+      } />
       <Route path="/results" element={<EndScreen 
           wordsLearned={wordsLearned}
           timeTaken={startTime && endTime ? Math.round((endTime - startTime) / 1000) : 0}
@@ -67,9 +91,27 @@ const GameRoutes = () => {
   );
 };
 
+const UserStatsDisplay: React.FC = () => {
+  const { userStats } = useAuth();
+
+  if (!userStats) return null;
+
+  return (
+    <div className="flex items-center gap-4 text-sm">
+      <div className="flex items-center gap-1">
+        <span className="text-yellow-500">💎</span>
+        <span className="font-semibold">{userStats.totalGems}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <span className="text-orange-500">🔥</span>
+        <span className="font-semibold">{userStats.currentStreak}</span>
+      </div>
+    </div>
+  );
+};
 
 const App: React.FC = () => {
-    const { ready, authenticated, login } = useAuth();
+    const { ready, authenticated, login, loading } = useAuth();
     const location = useLocation();
     const [activeTab, setActiveTab] = useState<AppTab>('home');
     const [showLoginModal, setShowLoginModal] = useState(false);
@@ -123,6 +165,16 @@ const App: React.FC = () => {
         </div>;
     }
 
+    // Show loading while authenticating with Supabase
+    if (loading) {
+        return <div className="app-container flex items-center justify-center">
+            <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Setting up your account...</p>
+            </div>
+        </div>;
+    }
+
     // Show login modal if not authenticated
     if (!authenticated && showLoginModal) {
         return <LoginModal onLogin={handleLogin} onContinueAsGuest={handleContinueAsGuest} />;
@@ -130,10 +182,13 @@ const App: React.FC = () => {
 
     return (
         <main className="app-container pb-24">
-            {/* Header with User Profile */}
+            {/* Header with User Profile and Stats */}
             {authenticated && (
                 <header className="flex justify-between items-center mb-4">
-                    <h1 className="text-xl font-bold text-gray-900">KanjiMatch</h1>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-xl font-bold text-gray-900">KanjiMatch</h1>
+                        <UserStatsDisplay />
+                    </div>
                     <UserProfile />
                 </header>
             )}
