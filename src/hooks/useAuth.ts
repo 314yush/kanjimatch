@@ -30,6 +30,7 @@ export function useAuth() {
     linkWallet,
     unlinkWallet,
     unlinkEmail,
+    getAccessToken,
   } = usePrivy();
 
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -49,10 +50,9 @@ export function useAuth() {
 
   const handleUserAuthentication = async () => {
     if (!user) return;
-    
     setLoading(true);
     try {
-      // Create or get user from Supabase
+      // Create or get user from Supabase (no JWT needed with RLS disabled)
       let supabaseUser = await SupabaseService.getUserByPrivyId(user.id);
       
       if (!supabaseUser) {

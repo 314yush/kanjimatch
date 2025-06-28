@@ -22,8 +22,21 @@ function speakJapanese(text: string) {
 const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
   const todaySegments = useMemo(() => getTodaysStorySegment(), []);
 
+  // Initialize selectedAnswers with null for all fill-blank questions
+  const initialSelectedAnswers = useMemo(() => {
+    const answers: { [lineId: string]: string | null } = {};
+    todaySegments.forEach(day => {
+      day.lines.forEach(line => {
+        if (line.type === 'fill-blank') {
+          answers[line.id] = null;
+        }
+      });
+    });
+    return answers;
+  }, [todaySegments]);
+
   // State
-  const [selectedAnswers, setSelectedAnswers] = useState<{ [lineId: string]: string | null }>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<{ [lineId: string]: string | null }>(initialSelectedAnswers);
   const [currentAttempt, setCurrentAttempt] = useState<{ [lineId: string]: string | null }>({});
   const [incorrectAttempts, setIncorrectAttempts] = useState<{ [lineId: string]: number }>({});
   const [shuffledTiles, setShuffledTiles] = useState<{ [lineId: string]: StoryTile[] }>({});
@@ -80,8 +93,9 @@ const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
 
 
   const renderDialogue = (line: StoryLine, isLastLine: boolean) => {
-    const isCorrectlyAnswered = selectedAnswers[line.id] === line.answer?.jp;
-    const isIncorrectAttempt = currentAttempt[line.id] && !isCorrectlyAnswered;
+    const isFillBlank = line.type === 'fill-blank';
+    const isCorrectlyAnswered = isFillBlank && selectedAnswers[line.id] === line.answer?.jp;
+    const isIncorrectAttempt = isFillBlank && currentAttempt[line.id] && !isCorrectlyAnswered;
     const filledInAnswer = isCorrectlyAnswered ? selectedAnswers[line.id] : null;
 
     return (
@@ -95,8 +109,8 @@ const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
             </div>
             <div className={`flex-1 max-w-[85vw] sm:max-w-[80%]`}>
                 <div className={`ui-card !p-3 mb-1 relative flex flex-col ${line.speaker === 'yuta' ? 'items-start' : 'items-end'}
-                    ${isCorrectlyAnswered ? '!bg-success/10 !border-success' : ''}
-                    ${isIncorrectAttempt ? '!bg-error/10 !border-error animate-shake' : ''}
+                    ${isFillBlank && isCorrectlyAnswered ? '!bg-success/10 !border-success' : ''}
+                    ${isFillBlank && isIncorrectAttempt ? '!bg-error/10 !border-error animate-shake' : ''}
                 `}>
                      <button
                         onClick={() => speakJapanese(line.jp.replace('___', filledInAnswer || '___'))}
@@ -112,8 +126,8 @@ const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
                                 {part}
                                 {i < line.jp.split('___').length - 1 && (
                                     <span className={`inline-block w-20 h-7 text-center leading-7 rounded-md mx-1 align-middle
-                                        ${isCorrectlyAnswered ? 'bg-success/20 text-success-dark' : 'bg-yellow-100 border-b-2 border-yellow-400'}`}>
-                                        {filledInAnswer}
+                                        ${isFillBlank && isCorrectlyAnswered ? 'bg-success/20 text-success-dark' : 'bg-yellow-100 border-b-2 border-yellow-400'}`}>
+                                        {filledInAnswer || '___'}
                                     </span>
                                 )}
                             </React.Fragment>
@@ -123,16 +137,16 @@ const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
                         {line.romaji.replace('___', filledInAnswer ? (line.tiles?.find(t=>t.jp === filledInAnswer)?.romaji || '...') : '___')}
                     </div>
                     <div className="text-sm text-brand-text-primary/80 pl-7 w-full break-words">
-                        {line.en.replace('___', filledInAnswer || '...')}
+                        {line.en.replace('___', filledInAnswer || '___')}
                     </div>
                     
-                    {isCorrectlyAnswered && (
+                    {isFillBlank && isCorrectlyAnswered && (
                          <div className="flex items-center gap-1 mt-2 text-success font-semibold">
                           <CheckIcon className="w-5 h-5 text-success" />
                           Correct!
                         </div>
                     )}
-                     {isIncorrectAttempt && (
+                     {isFillBlank && isIncorrectAttempt && (
                         <div className="flex items-center gap-1 mt-2 text-error font-semibold">
                           <XMarkIcon className="w-5 h-5 text-error" />
                           Try again!
@@ -143,7 +157,7 @@ const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
         </div>
 
         {/* Answer Tiles */}
-        {line.type === 'fill-blank' && !isCorrectlyAnswered && (
+        {isFillBlank && !isCorrectlyAnswered && (
           <div className="mt-2 flex flex-wrap gap-2 justify-center">
             {(shuffledTiles[line.id] || line.tiles)?.map((tile) => (
               <button
@@ -199,15 +213,7 @@ const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
       <div className="flex-1 w-full max-w-md mx-auto px-4">
         {todaySegments.flatMap(day => day.lines).map((line, index, allLines) => {
             const isLastLine = index === allLines.length - 1;
-            const isQuestion = line.type === 'fill-blank';
-            const previousLine = allLines[index - 1];
-            const isPrevQuestionCorrect = !previousLine || previousLine.type !== 'fill-blank' || (selectedAnswers[previousLine.id] === previousLine.answer?.jp);
-            
-            // Render line if it's not a question, or if it's the first question, or if the previous question was answered correctly
-            if (!isQuestion || index === 0 || isPrevQuestionCorrect) {
-                 return renderDialogue(line, isLastLine);
-            }
-            return null;
+            return renderDialogue(line, isLastLine);
         })}
       </div>
     </div>

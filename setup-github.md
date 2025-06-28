@@ -22,8 +22,8 @@
 
 ## Important Notes:
 
-- Your `.env` file contains sensitive information (Privy App ID) and is now protected by `.gitignore`
-- Anyone cloning the repository will need to create their own `.env` file with their Privy App ID
+- Your `.env` file contains sensitive information (Privy App ID, Supabase credentials) and is now protected by `.gitignore`
+- Anyone cloning the repository will need to create their own `.env` file with their credentials
 - The README.md file includes setup instructions for new users
 
 ## Environment Variables Needed:
@@ -31,4 +31,6 @@
 Create a `.env` file in the root directory with:
 ```
 REACT_APP_PRIVY_APP_ID=your_privy_app_id_here
+REACT_APP_SUPABASE_URL=your_supabase_url_here
+REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ``` 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { vocabularyDatabase } from '../data/vocabularyData';
+import { getDailyVocabularyContent } from '../utils/dailyContent';
 import { InformationCircleIcon, SpeakerWaveIcon } from '@heroicons/react/24/outline';
 import { useAudio } from '../contexts/AudioProvider';
 
@@ -28,13 +28,13 @@ const JapaneseTile = ({ tile, index, onInfoClick, showInfo }: { tile: any; index
             <button
                 onClick={(e) => {
                     e.stopPropagation();
-                    speak(tile.jp);
+                    speak(tile.japanese);
                 }}
                 className="p-1 rounded-full hover:bg-brand-secondary/30 text-brand-text-secondary hover:text-brand-primary"
             >
                 <SpeakerWaveIcon className="w-5 h-5" />
             </button>
-            <span className="jp-text text-base" {...provided.dragHandleProps}>{tile.jp}</span>
+            <span className="jp-text text-base" {...provided.dragHandleProps}>{tile.japanese}</span>
           </div>
           
           <div className="relative">
@@ -84,15 +84,38 @@ const EnglishTarget = ({ tile, onDrop, isMatched, matchedWord }: { tile: any; on
   </Droppable>
 );
 
+function shuffle<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 const TileMatch: React.FC<TileMatchProps> = ({ onComplete, numPairs = 5 }) => {
   const pairs = useMemo(() => {
-    const shuffled = [...vocabularyDatabase].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, numPairs);
-  }, [numPairs]);
+    // Use daily content system to get consistent pairs for the day
+    const today = new Date();
+    return getDailyVocabularyContent(today);
+  }, []);
 
-  const englishTiles = useMemo(() => pairs.map(p => ({ id: p.id, text: p.english })), [pairs]);
-  const japaneseTilesData = useMemo(() => pairs.map(p => ({ id: p.id, jp: p.japanese, romanji: p.romanji })), [pairs]);
+  // Shuffle English and Japanese tiles independently, ensuring no pair is aligned
+  const [englishTiles, japaneseTilesData] = useMemo(() => {
+    let english: { id: string, text: string }[];
+    let japanese: { id: string, japanese: string, romanji: string }[];
+    let attempts = 0;
+    do {
+      english = shuffle(pairs.map(p => ({ id: p.id, text: p.english })));
+      japanese = shuffle(pairs.map(p => ({ id: p.id, japanese: p.japanese, romanji: p.romanji || '' })));
+      attempts++;
+      // Check if any pair is aligned
+      // If so, reshuffle
+    } while (
+      english.some((e, idx) => e.id === japanese[idx].id) && attempts < 20
+    );
+    return [english, japanese];
+  }, [pairs]);
 
   const [japaneseTiles, setJapaneseTiles] = useState(japaneseTilesData);
   const [matchedPairs, setMatchedPairs] = useState<{ [key: string]: string }>({});
@@ -136,7 +159,7 @@ const TileMatch: React.FC<TileMatchProps> = ({ onComplete, numPairs = 5 }) => {
                     tile={tile}
                     onDrop={() => {}}
                     isMatched={!!matchedPairs[tile.id]}
-                    matchedWord={matchedPairs[tile.id] ? japaneseTilesData.find(t => t.id === matchedPairs[tile.id])?.jp ?? null : null}
+                    matchedWord={matchedPairs[tile.id] ? japaneseTilesData.find(t => t.id === matchedPairs[tile.id])?.japanese ?? null : null}
                     />
                 ))}
             </div>

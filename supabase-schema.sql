@@ -162,7 +162,7 @@ $$ language 'plpgsql';
 CREATE TRIGGER on_user_created
     AFTER INSERT ON users
     FOR EACH ROW
-    EXECUTE FUNCTION handle_new_user();
+    EXECUTE FUNCTION handle_new_user(); 
 
 -- Create function to reset daily gems
 CREATE OR REPLACE FUNCTION reset_daily_gems()

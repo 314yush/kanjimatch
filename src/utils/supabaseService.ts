@@ -8,6 +8,7 @@ type GameCompletion = Database['public']['Tables']['game_completions']['Row'];
 export class SupabaseService {
   // User management
   static async createUser(privyId: string, email?: string, walletAddress?: string): Promise<User | null> {
+    // Only call this if getUserByPrivyId returns null!
     try {
       const { data, error } = await supabase
         .from('users')
@@ -37,7 +38,7 @@ export class SupabaseService {
         .from('users')
         .select('*')
         .eq('privy_id', privyId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user:', error);
