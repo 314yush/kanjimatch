@@ -15,11 +15,16 @@
     @apply bg-brand-background text-brand-text-primary font-sans antialiased;
     min-height: -webkit-fill-available;
     overscroll-behavior-y: none;
+    font-family: 'Inter', 'Open Sans', system-ui, sans-serif;
+    background: #F7E9D0;
+    color: #3B2F1E;
   }
 
   /* Typography */
-  h1, h2, h3, h4 {
+  h1, h2, h3, h4, h5, h6, .brand-heading {
     @apply font-bold text-brand-text-primary;
+    font-family: 'Nunito', 'Quicksand', 'Poppins', sans-serif;
+    color: #3B2F1E;
   }
   h1 { @apply text-3xl; }
   h2 { @apply text-2xl; }
@@ -150,4 +155,15 @@
   .tap-highlight {
     -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
   }
+}
+
+:root {
+  --brand-primary: #F59E42;
+  --brand-secondary: #F7E9D0;
+  --brand-accent: #6C4F2B;
+  --brand-success: #4ADE80;
+  --brand-warning: #FBBF24;
+  --brand-error: #F87171;
+  --brand-text-primary: #3B2F1E;
+  --brand-text-secondary: #A78B6C;
 } 

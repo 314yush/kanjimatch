@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
+import { fetchENS } from '../utils/ens';
 
 const UserProfile: React.FC = () => {
   const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [ensName, setEnsName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getENS = async () => {
+      if (user?.walletAddress) {
+        const ens = await fetchENS(user.walletAddress);
+        setEnsName(ens);
+      }
+    };
+    getENS();
+  }, [user?.walletAddress]);
 
   if (!user) return null;
 
@@ -12,6 +24,16 @@ const UserProfile: React.FC = () => {
     await logout();
     setIsOpen(false);
   };
+
+  // Display logic: ENS > wallet > email > fallback
+  let displayName = 'User';
+  if (ensName) {
+    displayName = ensName;
+  } else if (user.walletAddress) {
+    displayName = `${user.walletAddress.slice(0, 6)}...${user.walletAddress.slice(-4)}`;
+  } else if (user.email) {
+    displayName = user.email;
+  }
 
   return (
     <div className="relative">
@@ -21,11 +43,11 @@ const UserProfile: React.FC = () => {
       >
         <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
           <span className="text-white text-sm font-semibold">
-            {user.email ? user.email[0].toUpperCase() : 'U'}
+            {displayName[0]?.toUpperCase() || 'U'}
           </span>
         </div>
         <span className="text-sm font-medium text-gray-700 hidden sm:block">
-          {user.email || 'User'}
+          {displayName}
         </span>
         <svg
           className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
@@ -51,18 +73,19 @@ const UserProfile: React.FC = () => {
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold">
-                    {user.email ? user.email[0].toUpperCase() : 'U'}
+                    {displayName[0]?.toUpperCase() || 'U'}
                   </span>
                 </div>
                 <div>
                   <p className="font-medium text-gray-900">
-                    {user.email || 'Anonymous User'}
+                    {displayName}
                   </p>
                   <p className="text-sm text-gray-500">ID: {user.id.slice(0, 8)}...</p>
                 </div>
               </div>
 
-              {user.walletAddress && (
+              {/* Only show wallet address if ENS is not available */}
+              {user.walletAddress && !ensName && (
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500 mb-1">Wallet Address</p>
                   <p className="text-sm font-mono text-gray-700 break-all">

@@ -8,6 +8,9 @@
 import { storyDays } from '../data/storyData';
 import { vocabularyPairs } from '../data/vocabularyData';
 
+// Set the cycle start date to today
+export const CYCLE_START_DATE = new Date(new Date().toISOString().split('T')[0]); // Today as Day 1
+
 /**
  * Get a deterministic hash from a date string (YYYY-MM-DD)
  */
@@ -93,15 +96,15 @@ const wordleWords = [
 
 // Function to get daily story content
 export const getDailyStoryContent = (date: Date): typeof storyDays[0] | null => {
-  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-  const storyIndex = (dayOfYear - 1) % storyDays.length;
+  const dayOfYear = Math.floor((date.getTime() - CYCLE_START_DATE.getTime()) / (1000 * 60 * 60 * 24));
+  const storyIndex = (dayOfYear) % storyDays.length;
   return storyDays[storyIndex] || null;
 };
 
 // Function to get daily vocabulary pairs (5 pairs per day with 3 new + 2 old pattern)
 export const getDailyVocabularyContent = (date: Date): typeof vocabularyPairs[0][] => {
-  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-  const dayIndex = (dayOfYear - 1) % 30; // 30-day cycle
+  const dayOfYear = Math.floor((date.getTime() - CYCLE_START_DATE.getTime()) / (1000 * 60 * 60 * 24));
+  const dayIndex = (dayOfYear) % 30; // 30-day cycle
   
   if (dayIndex === 0) {
     // Day 1: First 5 pairs
@@ -121,8 +124,8 @@ export const getDailyVocabularyContent = (date: Date): typeof vocabularyPairs[0]
 
 // Function to get daily wordle word
 export const getDailyWordleContent = (date: Date): string => {
-  const dayOfYear = Math.floor((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-  const wordIndex = (dayOfYear - 1) % wordleWords.length;
+  const dayOfYear = Math.floor((date.getTime() - CYCLE_START_DATE.getTime()) / (1000 * 60 * 60 * 24));
+  const wordIndex = (dayOfYear) % wordleWords.length;
   return wordleWords[wordIndex] || wordleWords[0];
 };
 

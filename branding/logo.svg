@@ -1,0 +1,5 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="120" height="120" rx="28" fill="#F59E42"/>
+  <text x="50%" y="60%" text-anchor="middle" font-size="56" font-family="Nunito, Quicksand, sans-serif" fill="#fff" font-weight="bold" dy=".3em">日</text>
+  <circle cx="90" cy="30" r="8" fill="#fff" opacity="0.7"/>
+</svg> 

@@ -216,6 +216,7 @@ export class SupabaseService {
   static async getLeaderboard(limit: number = 10): Promise<Array<{
     user_id: string;
     email: string | null;
+    wallet_address: string | null;
     total_gems: number;
     current_streak: number;
     longest_streak: number;
@@ -228,7 +229,7 @@ export class SupabaseService {
           total_gems,
           current_streak,
           longest_streak,
-          users!inner(email)
+          users!inner(email, wallet_address)
         `)
         .order('total_gems', { ascending: false })
         .limit(limit);
@@ -241,6 +242,7 @@ export class SupabaseService {
       return data?.map((item: any) => ({
         user_id: item.user_id,
         email: item.users?.email || null,
+        wallet_address: item.users?.wallet_address || null,
         total_gems: item.total_gems,
         current_streak: item.current_streak,
         longest_streak: item.longest_streak,

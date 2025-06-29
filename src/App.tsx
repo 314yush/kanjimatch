@@ -77,6 +77,7 @@ const GameRoutes = () => {
     if (path === '/') {
       const tileMatchWords = phraseDataset.slice(0, 5).map(p => p.jp);
       setWordsLearned(prev => Array.from(new Set([...prev, ...tileMatchWords])));
+      setStartTime(prev => prev ?? Date.now());
     } else if (path === '/wordle') {
       const wordle = getDailyWordleWord();
       handleWordLearned(wordle.japanese);
@@ -118,6 +119,7 @@ const GameRoutes = () => {
           wordsLearned={wordsLearned}
           timeTaken={startTime && endTime ? Math.round((endTime - startTime) / 1000) : 0}
           onRestart={resetGame} 
+          userStats={userStats ?? undefined}
         />} />
     </Routes>
   );
@@ -282,7 +284,9 @@ const App: React.FC = () => {
                 <Routes>
                     <Route path="/*" element={<GameRoutes />} />
                     <Route path="/leaderboard" element={<Leaderboard />} />
-                    <Route path="/test" element={<DailyContentTest />} />
+                    {process.env.NODE_ENV === 'development' && (
+                      <Route path="/test" element={<DailyContentTest />} />
+                    )}
                 </Routes>
             </div>
             <BottomNavBar activeTab={activeTab} />

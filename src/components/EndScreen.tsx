@@ -6,6 +6,10 @@ interface EndScreenProps {
   wordsLearned: string[];
   timeTaken: number;
   onRestart: () => void;
+  userStats?: {
+    totalGems: number;
+    currentStreak: number;
+  };
 }
 
 const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string | number }> = ({ icon: Icon, label, value }) => (
@@ -20,15 +24,35 @@ const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string
     </div>
 );
 
-const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestart }) => {
+const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestart, userStats }) => {
     const [copied, setCopied] = useState(false);
+    const [shared, setShared] = useState(false);
     const { speak } = useAudio();
 
-    const handleShare = () => {
-        const shareText = `I just learned ${wordsLearned.length} Japanese words in ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s on KanjiMatch! Check it out!`;
-        navigator.clipboard.writeText(shareText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const handleShare = async () => {
+        const streak = userStats?.currentStreak || 0;
+        const gems = userStats?.totalGems || 0;
+        const shareText = `I just learned ${wordsLearned.length} Japanese words in ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s on KanjiMatch!\nStreak: ${streak} days, Gems: ${gems}.\nJoin me and level up your Japanese! https://kanjimatch.com`;
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'KanjiMatch Progress',
+                    text: shareText,
+                    url: 'https://kanjimatch.com',
+                });
+                setShared(true);
+                setTimeout(() => setShared(false), 2000);
+            } catch (e) {
+                // fallback to clipboard
+                navigator.clipboard.writeText(shareText);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            }
+        } else {
+            navigator.clipboard.writeText(shareText);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
     };
 
     return (
@@ -64,12 +88,18 @@ const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestar
             </button>
             <button
                 onClick={handleShare}
-                className="btn btn-secondary w-full"
+                className={`btn btn-secondary w-full transition-all duration-200 ${shared ? 'scale-105 bg-success/80 text-white' : ''}`}
             >
-                {copied ? <CheckIcon className="w-5 h-5 mr-2" /> : <ShareIcon className="w-5 h-5 mr-2" />}
-                {copied ? 'Copied!' : 'Share'}
+                {shared ? <CheckIcon className="w-5 h-5 mr-2 animate-bounce" /> : copied ? <CheckIcon className="w-5 h-5 mr-2" /> : <ShareIcon className="w-5 h-5 mr-2" />}
+                {shared ? 'Shared!' : copied ? 'Copied!' : 'Share'}
             </button>
         </div>
+        {(shared || copied) && (
+          <div className={`mt-4 px-4 py-2 rounded-lg text-sm font-semibold ${shared ? 'bg-success/10 text-success-dark' : 'bg-brand-secondary/40 text-brand-text-primary'}`}
+               role="status">
+            {shared ? 'Thanks for sharing your progress!' : 'Copied to clipboard!'}
+          </div>
+        )}
       </div>
     );
 };
