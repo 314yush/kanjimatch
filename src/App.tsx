@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, BrowserRouter as Router } from 'react-router-dom';
 import LoginModal from './components/LoginModal';
 import TileMatch from './components/TileMatch';
 import StoryMode from './components/StoryMode';
@@ -10,6 +10,7 @@ import BottomNavBar, { AppTab } from './components/BottomNavBar';
 import Leaderboard from './components/Leaderboard';
 import UserProfile from './components/UserProfile';
 import DailyContentTest from './components/DailyContentTest';
+import LandingPage from './components/LandingPage';
 import { getDailyWordleWord } from './data/vocabularyData';
 import { getTodaysStorySegment } from './data/storyData';
 import { phraseDataset } from './data/phraseData';
@@ -35,7 +36,7 @@ const GameRoutes = () => {
     setWordsLearned([]);
     setStartTime(Date.now());
     setEndTime(null);
-    navigate('/');
+    navigate('/app');
   },[navigate]);
 
   const handleGameComplete = useCallback(async (gameType: 'tilematch' | 'wordle' | 'story') => {
@@ -74,14 +75,14 @@ const GameRoutes = () => {
   
   useEffect(() => {
     const path = location.pathname;
-    if (path === '/') {
+    if (path === '/app') {
       const tileMatchWords = phraseDataset.slice(0, 5).map(p => p.jp);
       setWordsLearned(prev => Array.from(new Set([...prev, ...tileMatchWords])));
       setStartTime(prev => prev ?? Date.now());
-    } else if (path === '/wordle') {
+    } else if (path === '/app/wordle') {
       const wordle = getDailyWordleWord();
       handleWordLearned(wordle.japanese);
-    } else if (path === '/story') {
+    } else if (path === '/app/story') {
         const story = getTodaysStorySegment();
         const storyWords = story.flatMap(s => s.newWords.map(w => w.jp));
         setWordsLearned(prev => Array.from(new Set([...prev, ...storyWords])));
@@ -90,32 +91,32 @@ const GameRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/" element={
+      <Route path="" element={
         <TileMatch 
           onComplete={() => {
             handleGameComplete('tilematch');
-            navigate('/wordle');
+            navigate('/app/wordle');
           }} 
         />
       } />
-      <Route path="/wordle" element={
+      <Route path="wordle" element={
         <WordleChallenge 
           onComplete={() => {
             handleGameComplete('wordle');
-            navigate('/story');
+            navigate('/app/story');
           }} 
         />
       } />
-      <Route path="/story" element={
+      <Route path="story" element={
         <StoryMode 
           onComplete={() => {
             handleGameComplete('story');
             setEndTime(Date.now());
-            navigate('/results');
+            navigate('/app/results');
           }} 
         />
       } />
-      <Route path="/results" element={<EndScreen 
+      <Route path="results" element={<EndScreen 
           wordsLearned={wordsLearned}
           timeTaken={startTime && endTime ? Math.round((endTime - startTime) / 1000) : 0}
           onRestart={resetGame} 
@@ -192,6 +193,7 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AppTab>('home');
     const [showLoginModal, setShowLoginModal] = useState(false);
     const [showInfo, setShowInfo] = useState(false);
+    const navigate = useNavigate();
 
     const pathMap: { [key: string]: number } = {
         '/': 1,
@@ -206,6 +208,7 @@ const App: React.FC = () => {
         try {
             await login();
             setShowLoginModal(false);
+            navigate('/app');
         } catch (error) {
             console.error('Login failed:', error);
         }
@@ -213,6 +216,7 @@ const App: React.FC = () => {
 
     const handleContinueAsGuest = () => {
         setShowLoginModal(false);
+        navigate('/app');
     };
 
     useEffect(() => {
@@ -222,15 +226,6 @@ const App: React.FC = () => {
             setActiveTab('home');
         }
     }, [location.pathname]);
-
-    // Show login modal if not authenticated and Privy is ready
-    useEffect(() => {
-        if (ready && !authenticated) {
-            setShowLoginModal(true);
-        } else if (authenticated) {
-            setShowLoginModal(false);
-        }
-    }, [ready, authenticated]);
 
     // Don't render anything until Privy is ready
     if (!ready) {
@@ -252,45 +247,51 @@ const App: React.FC = () => {
         </div>;
     }
 
-    // Show login modal if not authenticated
-    if (!authenticated && showLoginModal) {
+    // Show login modal only if triggered by user action
+    if (showLoginModal) {
         return <LoginModal onLogin={handleLogin} onContinueAsGuest={handleContinueAsGuest} />;
     }
 
     return (
-        <main className="app-container pb-24">
-            {/* Header with User Profile and Stats */}
-            {authenticated && (
-                <header className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                          KanjiMatch
-                          <button
-                            className="ml-1 p-1 rounded-full hover:bg-brand-secondary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                            onClick={() => setShowInfo(true)}
-                            aria-label="How KanjiMatch Works"
-                          >
-                            <InformationCircleIcon className="w-5 h-5" />
-                          </button>
-                        </h1>
-                        <UserStatsDisplay />
-                    </div>
-                    <UserProfile />
-                </header>
-            )}
-            {showInfo && <InfoModal open={showInfo} onClose={() => setShowInfo(false)} />}
-            {showProgressBar && <ProgressBar currentStep={currentStep} totalSteps={4} />}
-            <div className={showProgressBar ? "mt-4" : ""}>
-                <Routes>
-                    <Route path="/*" element={<GameRoutes />} />
-                    <Route path="/leaderboard" element={<Leaderboard />} />
-                    {process.env.NODE_ENV === 'development' && (
-                      <Route path="/test" element={<DailyContentTest />} />
+        <Routes>
+            <Route path="/" element={<LandingPage onStart={() => setShowLoginModal(true)} />} />
+            <Route path="/app/*" element={
+                <main className="app-container pb-24">
+                    {/* Header with User Profile and Stats */}
+                    {authenticated && (
+                        <header className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-4">
+                                <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                  KanjiMatch
+                                  <button
+                                    className="ml-1 p-1 rounded-full hover:bg-brand-secondary/20 text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                                    onClick={() => setShowInfo(true)}
+                                    aria-label="How KanjiMatch Works"
+                                  >
+                                    <InformationCircleIcon className="w-5 h-5" />
+                                  </button>
+                                </h1>
+                                <UserStatsDisplay />
+                            </div>
+                            <UserProfile />
+                        </header>
                     )}
-                </Routes>
-            </div>
-            <BottomNavBar activeTab={activeTab} />
-        </main>
+                    {showInfo && <InfoModal open={showInfo} onClose={() => setShowInfo(false)} />}
+                    {showProgressBar && <ProgressBar currentStep={currentStep} totalSteps={4} />}
+                    <div className={showProgressBar ? "mt-4" : ""}>
+                        <Routes>
+                            <Route path="/*" element={<GameRoutes />} />
+                            <Route path="leaderboard" element={<Leaderboard />} />
+                            {process.env.NODE_ENV === 'development' && (
+                              <Route path="test" element={<DailyContentTest />} />
+                            )}
+                        </Routes>
+                    </div>
+                    <BottomNavBar activeTab={activeTab} />
+                </main>
+            } />
+            <Route path="/landing" element={<LandingPage onStart={() => setShowLoginModal(true)} />} />
+        </Routes>
     );
 };
 
