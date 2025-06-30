@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAudio } from '../contexts/AudioProvider';
 import { ClockIcon, SparklesIcon, ShareIcon, CheckIcon } from '@heroicons/react/24/outline';
 import {
@@ -9,6 +9,9 @@ import {
   FacebookIcon,
   WhatsappIcon
 } from 'react-share';
+import { SupabaseService } from '../utils/supabaseService';
+import { useAuth } from '../hooks/useAuth';
+import { getTodayDateString } from '../utils/dailyContent';
 
 interface EndScreenProps {
   wordsLearned: string[];
@@ -34,13 +37,31 @@ const StatCard: React.FC<{ icon: React.ElementType, label: string, value: string
 
 const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestart, userStats }) => {
     const [copied, setCopied] = useState(false);
-    const [shared, setShared] = useState(false);
+    const [completedToday, setCompletedToday] = useState(false);
+    const [checking, setChecking] = useState(true);
     const { speak } = useAudio();
+    const { user } = useAuth();
 
     const shareUrl = window.location.origin + '/';
     const streak = userStats?.currentStreak || 0;
     const gems = userStats?.totalGems || 0;
     const shareText = `I just learned ${wordsLearned.length} Japanese words in ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s on KanjiMatch!\nStreak: ${streak} days, Gems: ${gems}.\nJoin me and level up your Japanese!`;
+
+    useEffect(() => {
+      const checkCompletion = async () => {
+        if (!user?.id) {
+          setChecking(false);
+          return;
+        }
+        const today = getTodayDateString();
+        const completion = await SupabaseService.getDailyCompletion(user.id, today);
+        if (completion && completion.challenges_completed && completion.challenges_completed.length >= 3) {
+          setCompletedToday(true);
+        }
+        setChecking(false);
+      };
+      checkCompletion();
+    }, [user?.id]);
 
     const handleShare = async () => {
         try {
@@ -80,8 +101,9 @@ const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestar
              <button
                 onClick={onRestart}
                 className="btn btn-primary w-full"
+                disabled={completedToday || checking}
             >
-                Play Again
+                {checking ? 'Checking...' : completedToday ? 'Come back tomorrow!' : 'Play Again'}
             </button>
             <button
                 onClick={handleShare}
