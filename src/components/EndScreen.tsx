@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
 import { useAudio } from '../contexts/AudioProvider';
 import { ClockIcon, SparklesIcon, ShareIcon, CheckIcon } from '@heroicons/react/24/outline';
+import {
+  TwitterShareButton,
+  FacebookShareButton,
+  WhatsappShareButton,
+  TwitterIcon,
+  FacebookIcon,
+  WhatsappIcon
+} from 'react-share';
 
 interface EndScreenProps {
   wordsLearned: string[];
@@ -29,29 +37,18 @@ const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestar
     const [shared, setShared] = useState(false);
     const { speak } = useAudio();
 
+    const shareUrl = window.location.origin + '/';
+    const streak = userStats?.currentStreak || 0;
+    const gems = userStats?.totalGems || 0;
+    const shareText = `I just learned ${wordsLearned.length} Japanese words in ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s on KanjiMatch!\nStreak: ${streak} days, Gems: ${gems}.\nJoin me and level up your Japanese!`;
+
     const handleShare = async () => {
-        const streak = userStats?.currentStreak || 0;
-        const gems = userStats?.totalGems || 0;
-        const shareText = `I just learned ${wordsLearned.length} Japanese words in ${Math.floor(timeTaken / 60)}m ${timeTaken % 60}s on KanjiMatch!\nStreak: ${streak} days, Gems: ${gems}.\nJoin me and level up your Japanese! https://kanjimatch.com`;
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: 'KanjiMatch Progress',
-                    text: shareText,
-                    url: 'https://kanjimatch.com',
-                });
-                setShared(true);
-                setTimeout(() => setShared(false), 2000);
-            } catch (e) {
-                // fallback to clipboard
-                navigator.clipboard.writeText(shareText);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            }
-        } else {
-            navigator.clipboard.writeText(shareText);
+        try {
+            await navigator.clipboard.writeText(shareText + '\n' + shareUrl);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
+        } catch (e) {
+            alert('Could not copy to clipboard. Please make sure your browser tab is focused.');
         }
     };
 
@@ -79,7 +76,7 @@ const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestar
             </div>
         </div>
         
-        <div className="w-full max-w-md flex flex-col sm:flex-row gap-3">
+        <div className="w-full max-w-md flex flex-col sm:flex-row gap-3 mb-4">
              <button
                 onClick={onRestart}
                 className="btn btn-primary w-full"
@@ -88,16 +85,29 @@ const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestar
             </button>
             <button
                 onClick={handleShare}
-                className={`btn btn-secondary w-full transition-all duration-200 ${shared ? 'scale-105 bg-success/80 text-white' : ''}`}
+                className={`btn btn-secondary w-full transition-all duration-200 ${copied ? 'scale-105 bg-success/80 text-white' : ''}`}
             >
-                {shared ? <CheckIcon className="w-5 h-5 mr-2 animate-bounce" /> : copied ? <CheckIcon className="w-5 h-5 mr-2" /> : <ShareIcon className="w-5 h-5 mr-2" />}
-                {shared ? 'Shared!' : copied ? 'Copied!' : 'Share'}
+                {copied ? <CheckIcon className="w-5 h-5 mr-2" /> : <ShareIcon className="w-5 h-5 mr-2" />}
+                {copied ? 'Copied!' : 'Copy Share Text'}
             </button>
         </div>
-        {(shared || copied) && (
-          <div className={`mt-4 px-4 py-2 rounded-lg text-sm font-semibold ${shared ? 'bg-success/10 text-success-dark' : 'bg-brand-secondary/40 text-brand-text-primary'}`}
-               role="status">
-            {shared ? 'Thanks for sharing your progress!' : 'Copied to clipboard!'}
+
+        {/* Social Share Buttons */}
+        <div className="flex gap-4 justify-center mb-4">
+          <TwitterShareButton url={shareUrl} title={shareText}>
+            <TwitterIcon size={40} round />
+          </TwitterShareButton>
+          <FacebookShareButton url={shareUrl}>
+            <FacebookIcon size={40} round />
+          </FacebookShareButton>
+          <WhatsappShareButton url={shareUrl} title={shareText} separator="\n">
+            <WhatsappIcon size={40} round />
+          </WhatsappShareButton>
+        </div>
+
+        {(copied) && (
+          <div className={`mt-4 px-4 py-2 rounded-lg text-sm font-semibold bg-brand-secondary/40 text-brand-text-primary`} role="status">
+            Copied to clipboard!
           </div>
         )}
       </div>
