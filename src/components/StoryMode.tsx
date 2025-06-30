@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { getTodaysStorySegment, StoryLine, StoryTile } from '../data/storyData';
 import { SpeakerWaveIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { useAudio } from '../contexts/AudioProvider';
 
 // Utility to shuffle an array
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -11,15 +12,8 @@ interface StoryModeProps {
   onComplete: () => void;
 }
 
-function speakJapanese(text: string) {
-  if ('speechSynthesis' in window) {
-    const utter = new window.SpeechSynthesisUtterance(text);
-    utter.lang = 'ja-JP';
-    window.speechSynthesis.speak(utter);
-  }
-}
-
 const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
+  const { speak, isLoading } = useAudio();
   const todaySegments = useMemo(() => getTodaysStorySegment(), []);
 
   // Initialize selectedAnswers with null for all fill-blank questions
@@ -113,11 +107,16 @@ const StoryMode: React.FC<StoryModeProps> = ({ onComplete }) => {
                     ${isFillBlank && isIncorrectAttempt ? '!bg-error/10 !border-error animate-shake' : ''}
                 `}>
                      <button
-                        onClick={() => speakJapanese(line.jp.replace('___', filledInAnswer || '___'))}
-                        className="absolute top-2 left-2 p-1 rounded-full hover:bg-brand-primary/10 focus:outline-none focus:ring-2 focus:ring-brand-primary z-10"
+                        onClick={() => speak(line.jp.replace('___', filledInAnswer || '___'))}
+                        disabled={isLoading}
+                        className="absolute top-2 left-2 p-1 rounded-full hover:bg-brand-primary/10 focus:outline-none focus:ring-2 focus:ring-brand-primary z-10 disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Play audio"
                       >
-                        <SpeakerWaveIcon className="w-5 h-5 text-brand-primary" />
+                        {isLoading ? (
+                          <div className="w-5 h-5 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <SpeakerWaveIcon className="w-5 h-5 text-brand-primary" />
+                        )}
                       </button>
 
                     <div className="text-base font-bold text-brand-text-primary mb-1 pl-7 pr-2 w-full break-words">

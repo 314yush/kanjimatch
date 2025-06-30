@@ -39,7 +39,7 @@ const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestar
     const [copied, setCopied] = useState(false);
     const [completedToday, setCompletedToday] = useState(false);
     const [checking, setChecking] = useState(true);
-    const { speak } = useAudio();
+    const { speak, isLoading } = useAudio();
     const { user } = useAuth();
 
     const shareUrl = window.location.origin + '/';
@@ -49,19 +49,19 @@ const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestar
 
     useEffect(() => {
       const checkCompletion = async () => {
-        if (!user?.id) {
+        if (!user?.supabaseUserId) {
           setChecking(false);
           return;
         }
         const today = getTodayDateString();
-        const completion = await SupabaseService.getDailyCompletion(user.id, today);
+        const completion = await SupabaseService.getDailyCompletion(user.supabaseUserId, today);
         if (completion && completion.challenges_completed && completion.challenges_completed.length >= 3) {
           setCompletedToday(true);
         }
         setChecking(false);
       };
       checkCompletion();
-    }, [user?.id]);
+    }, [user?.supabaseUserId]);
 
     const handleShare = async () => {
         try {
@@ -87,8 +87,17 @@ const EndScreen: React.FC<EndScreenProps> = ({ wordsLearned, timeTaken, onRestar
             <h3 className="font-bold text-brand-text-primary text-left mb-3">Words You Practiced</h3>
             <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
                  {wordsLearned.map((word, index) => (
-                    <div key={index} onClick={() => speak(word)} className="flex items-center justify-between bg-brand-background p-3 rounded-lg cursor-pointer hover:bg-brand-secondary/20 transition-colors">
+                    <div 
+                        key={index} 
+                        onClick={() => !isLoading && speak(word)} 
+                        className={`flex items-center justify-between bg-brand-background p-3 rounded-lg transition-colors ${
+                            isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-brand-secondary/20'
+                        }`}
+                    >
                         <span className="font-semibold text-brand-text-primary">{word}</span>
+                        {isLoading && (
+                          <div className="w-4 h-4 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+                        )}
                     </div>
                 ))}
                  {wordsLearned.length === 0 && (

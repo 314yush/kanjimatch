@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
 import { fetchENS } from '../utils/ens';
+import VoiceSettings from './VoiceSettings';
 
 const UserProfile: React.FC = () => {
   const { user, logout } = useAuth();
@@ -67,7 +68,7 @@ const UserProfile: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+            className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
           >
             <div className="p-4">
               <div className="flex items-center space-x-3 mb-4">
@@ -93,6 +94,11 @@ const UserProfile: React.FC = () => {
                   </p>
                 </div>
               )}
+
+              {/* Voice Settings */}
+              <div className="mb-4">
+                <VoiceSettings />
+              </div>
 
               <div className="border-t border-gray-200 pt-4">
                 <button

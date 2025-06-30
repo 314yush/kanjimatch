@@ -10,7 +10,7 @@ interface TileMatchProps {
 }
 
 const JapaneseTile = ({ tile, index, onInfoClick, showInfo }: { tile: any; index: number; onInfoClick: () => void; showInfo: boolean; }) => {
-  const { speak } = useAudio();
+  const { speak, isLoading } = useAudio();
 
   return (
     <Draggable draggableId={tile.id} index={index}>
@@ -30,9 +30,14 @@ const JapaneseTile = ({ tile, index, onInfoClick, showInfo }: { tile: any; index
                     e.stopPropagation();
                     speak(tile.japanese);
                 }}
-                className="p-1 rounded-full hover:bg-brand-secondary/30 text-brand-text-secondary hover:text-brand-primary"
+                disabled={isLoading}
+                className="p-1 rounded-full hover:bg-brand-secondary/30 text-brand-text-secondary hover:text-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                <SpeakerWaveIcon className="w-5 h-5" />
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <SpeakerWaveIcon className="w-5 h-5" />
+                )}
             </button>
             <span className="jp-text text-base" {...provided.dragHandleProps}>{tile.japanese}</span>
           </div>
