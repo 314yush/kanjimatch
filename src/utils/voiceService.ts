@@ -4,6 +4,7 @@ export interface VoiceService {
   speak: (text: string) => Promise<void>;
   isReady: boolean;
   provider: string;
+  getAudioBlob?: (text: string) => Promise<Blob>;
 }
 
 class ElevenLabsVoiceService implements VoiceService {
@@ -11,10 +12,14 @@ class ElevenLabsVoiceService implements VoiceService {
   provider = 'elevenlabs';
 
   async speak(text: string): Promise<void> {
+    const blob = await this.getAudioBlob(text);
+    await playAudioBlob(blob);
+  }
+
+  async getAudioBlob(text: string): Promise<Blob> {
     if (!ELEVENLABS_CONFIG.apiKey || !ELEVENLABS_CONFIG.voiceId) {
       throw new Error('ElevenLabs not configured');
     }
-
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_CONFIG.voiceId}`, {
       method: 'POST',
       headers: {
@@ -28,26 +33,10 @@ class ElevenLabsVoiceService implements VoiceService {
         voice_settings: ELEVENLABS_CONFIG.voiceSettings
       }),
     });
-
     if (!response.ok) {
       throw new Error(`ElevenLabs API error: ${response.status}`);
     }
-
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    
-    return new Promise((resolve, reject) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve();
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
-        reject(new Error('Audio playback failed'));
-      };
-      audio.play().catch(reject);
-    });
+    return await response.blob();
   }
 }
 
@@ -56,11 +45,14 @@ class AzureVoiceService implements VoiceService {
   provider = 'azure';
 
   async speak(text: string): Promise<void> {
+    const blob = await this.getAudioBlob(text);
+    await playAudioBlob(blob);
+  }
+
+  async getAudioBlob(text: string): Promise<Blob> {
     if (!AZURE_CONFIG.apiKey || !AZURE_CONFIG.region) {
       throw new Error('Azure Speech not configured');
     }
-
-    // Azure requires SSML for better pronunciation
     const ssml = `
       <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ja-JP">
         <voice name="${AZURE_CONFIG.voiceName}">
@@ -68,7 +60,6 @@ class AzureVoiceService implements VoiceService {
         </voice>
       </speak>
     `;
-
     const response = await fetch(`https://${AZURE_CONFIG.region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
       method: 'POST',
       headers: {
@@ -79,26 +70,10 @@ class AzureVoiceService implements VoiceService {
       },
       body: ssml,
     });
-
     if (!response.ok) {
       throw new Error(`Azure Speech API error: ${response.status}`);
     }
-
-    const audioBlob = await response.blob();
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    
-    return new Promise((resolve, reject) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve();
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
-        reject(new Error('Audio playback failed'));
-      };
-      audio.play().catch(reject);
-    });
+    return await response.blob();
   }
 }
 
@@ -107,12 +82,15 @@ class GoogleVoiceService implements VoiceService {
   provider = 'google';
 
   async speak(text: string): Promise<void> {
+    const blob = await this.getAudioBlob(text);
+    await playAudioBlob(blob);
+  }
+
+  async getAudioBlob(text: string): Promise<Blob> {
     if (!GOOGLE_CONFIG.apiKey) {
       throw new Error('Google TTS not configured');
     }
-
     const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_CONFIG.apiKey}`;
-    
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -131,28 +109,12 @@ class GoogleVoiceService implements VoiceService {
         },
       }),
     });
-
     if (!response.ok) {
       throw new Error(`Google TTS API error: ${response.status}`);
     }
-
     const data = await response.json();
     const audioContent = data.audioContent;
-    const audioBlob = new Blob([Uint8Array.from(atob(audioContent), c => c.charCodeAt(0))], { type: 'audio/mp3' });
-    const audioUrl = URL.createObjectURL(audioBlob);
-    const audio = new Audio(audioUrl);
-    
-    return new Promise((resolve, reject) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        resolve();
-      };
-      audio.onerror = () => {
-        URL.revokeObjectURL(audioUrl);
-        reject(new Error('Audio playback failed'));
-      };
-      audio.play().catch(reject);
-    });
+    return new Blob([Uint8Array.from(atob(audioContent), c => c.charCodeAt(0))], { type: 'audio/mp3' });
   }
 }
 
@@ -214,10 +176,51 @@ class WebSpeechVoiceService implements VoiceService {
   }
 }
 
+// Helper to play audio from a Blob
+function playAudioBlob(blob: Blob): Promise<void> {
+  const audioUrl = URL.createObjectURL(blob);
+  const audio = new Audio(audioUrl);
+  return new Promise((resolve, reject) => {
+    audio.onended = () => {
+      URL.revokeObjectURL(audioUrl);
+      resolve();
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(audioUrl);
+      reject(new Error('Audio playback failed'));
+    };
+    audio.play().catch(reject);
+  });
+}
+
+// Helper to encode/decode blobs for localStorage
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+function base64ToBlob(base64: string): Blob {
+  const arr = base64.split(',');
+  const match = arr[0].match(/:(.*?);/);
+  const mime = match ? match[1] : 'audio/mpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+}
+
 // Main voice service factory
 export class VoiceServiceManager {
   private services: VoiceService[] = [];
   private currentServiceIndex = 0;
+  private memoryCache: Map<string, Blob> = new Map();
+  private persistentCachePrefix = 'kanjimatch_audio_cache_';
 
   constructor() {
     const config = getActiveVoiceConfig();
@@ -248,17 +251,61 @@ export class VoiceServiceManager {
     return this.services[this.currentServiceIndex]?.provider || 'none';
   }
 
+  // Main speak method with caching
   async speak(text: string): Promise<void> {
     if (this.services.length === 0) {
       throw new Error('No voice services available');
     }
+    const provider = this.services[this.currentServiceIndex]?.provider || 'none';
+    const cacheKey = `${provider}__${text}`;
 
-    // Try each service in order until one works
+    // 1. Check in-memory cache
+    if (this.memoryCache.has(cacheKey)) {
+      const blob = this.memoryCache.get(cacheKey)!;
+      await playAudioBlob(blob);
+      return;
+    }
+    // 2. Check persistent cache (localStorage)
+    const persisted = localStorage.getItem(this.persistentCachePrefix + cacheKey);
+    if (persisted != null) {
+      const blob = base64ToBlob(persisted);
+      this.memoryCache.set(cacheKey, blob);
+      await playAudioBlob(blob);
+      return;
+    }
+    // Not in persistent cache, continue to fetch
+
+    // 3. Try each service in order until one works
     for (let i = 0; i < this.services.length; i++) {
       try {
         this.currentServiceIndex = i;
-        await this.services[i].speak(text);
-        return;
+        const service = this.services[i];
+        // Only cache for cloud providers (not web-speech)
+        if (service.provider === 'web-speech') {
+          await service.speak(text);
+          return;
+        }
+        // Intercept the fetch, get the blob, cache it, then play
+        let blob: Blob | null = null;
+        if (typeof service.getAudioBlob === 'function') {
+          blob = await service.getAudioBlob(text);
+        } else {
+          // fallback to normal speak
+          await service.speak(text);
+          return;
+        }
+        if (blob) {
+          this.memoryCache.set(cacheKey, blob);
+          blobToBase64(blob).then(base64 => {
+            try {
+              localStorage.setItem(this.persistentCachePrefix + cacheKey, base64);
+            } catch (e) {
+              // Ignore quota errors
+            }
+          });
+          await playAudioBlob(blob);
+          return;
+        }
       } catch (error) {
         console.warn(`Voice service ${this.services[i].provider} failed:`, error);
         if (i === this.services.length - 1) {
@@ -298,4 +345,84 @@ export class VoiceServiceManager {
     };
     return costMap[provider] || 0.00;
   }
-} 
+}
+
+// Add getAudioBlob to cloud providers
+ElevenLabsVoiceService.prototype.getAudioBlob = async function(text: string): Promise<Blob> {
+  if (!ELEVENLABS_CONFIG.apiKey || !ELEVENLABS_CONFIG.voiceId) {
+    throw new Error('ElevenLabs not configured');
+  }
+  const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_CONFIG.voiceId}`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'audio/mpeg',
+      'Content-Type': 'application/json',
+      'xi-api-key': ELEVENLABS_CONFIG.apiKey,
+    },
+    body: JSON.stringify({
+      text: text,
+      model_id: ELEVENLABS_CONFIG.model,
+      voice_settings: ELEVENLABS_CONFIG.voiceSettings
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`ElevenLabs API error: ${response.status}`);
+  }
+  return await response.blob();
+};
+AzureVoiceService.prototype.getAudioBlob = async function(text: string): Promise<Blob> {
+  if (!AZURE_CONFIG.apiKey || !AZURE_CONFIG.region) {
+    throw new Error('Azure Speech not configured');
+  }
+  const ssml = `
+    <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ja-JP">
+      <voice name="${AZURE_CONFIG.voiceName}">
+        ${text}
+      </voice>
+    </speak>
+  `;
+  const response = await fetch(`https://${AZURE_CONFIG.region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
+    method: 'POST',
+    headers: {
+      'Ocp-Apim-Subscription-Key': AZURE_CONFIG.apiKey,
+      'Content-Type': 'application/ssml+xml',
+      'X-Microsoft-OutputFormat': 'audio-16khz-128kbitrate-mono-mp3',
+      'User-Agent': 'KanjiMatch'
+    },
+    body: ssml,
+  });
+  if (!response.ok) {
+    throw new Error(`Azure Speech API error: ${response.status}`);
+  }
+  return await response.blob();
+};
+GoogleVoiceService.prototype.getAudioBlob = async function(text: string): Promise<Blob> {
+  if (!GOOGLE_CONFIG.apiKey) {
+    throw new Error('Google TTS not configured');
+  }
+  const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${GOOGLE_CONFIG.apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      input: { text },
+      voice: {
+        languageCode: 'ja-JP',
+        name: GOOGLE_CONFIG.voiceName,
+      },
+      audioConfig: {
+        audioEncoding: 'MP3',
+        speakingRate: 0.9,
+        pitch: 0,
+      },
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Google TTS API error: ${response.status}`);
+  }
+  const data = await response.json();
+  const audioContent = data.audioContent;
+  return new Blob([Uint8Array.from(atob(audioContent), c => c.charCodeAt(0))], { type: 'audio/mp3' });
+}; 
