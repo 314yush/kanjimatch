@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, useLocation, useNavigate, BrowserRouter as Router } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate, BrowserRouter as Router, Navigate } from 'react-router-dom';
 import LoginModal from './components/LoginModal';
 import TileMatch from './components/TileMatch';
 import StoryMode from './components/StoryMode';
@@ -9,7 +9,6 @@ import ProgressBar from './components/ProgressBar';
 import BottomNavBar, { AppTab } from './components/BottomNavBar';
 import Leaderboard from './components/Leaderboard';
 import UserProfile from './components/UserProfile';
-import DailyContentTest from './components/DailyContentTest';
 import LandingPage from './components/LandingPage';
 import { getDailyWordleWord } from './data/vocabularyData';
 import { getTodaysStorySegment } from './data/storyData';
@@ -220,7 +219,7 @@ const App: React.FC = () => {
     };
 
     useEffect(() => {
-        if(location.pathname.startsWith('/leaderboard')) {
+        if(location.pathname.startsWith('/app/leaderboard')) {
             setActiveTab('leaderboard');
         } else {
             setActiveTab('home');
@@ -255,6 +254,7 @@ const App: React.FC = () => {
     return (
         <Routes>
             <Route path="/" element={<LandingPage onStart={() => setShowLoginModal(true)} />} />
+            <Route path="/leaderboard" element={<Navigate to="/app/leaderboard" replace />} />
             <Route path="/app/*" element={
                 <main className="app-container pb-24">
                     {/* Header with User Profile and Stats */}
@@ -282,9 +282,6 @@ const App: React.FC = () => {
                         <Routes>
                             <Route path="/*" element={<GameRoutes />} />
                             <Route path="leaderboard" element={<Leaderboard />} />
-                            {process.env.NODE_ENV === 'development' && (
-                              <Route path="test" element={<DailyContentTest />} />
-                            )}
                         </Routes>
                     </div>
                     <BottomNavBar activeTab={activeTab} />

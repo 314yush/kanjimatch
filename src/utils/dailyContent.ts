@@ -8,8 +8,8 @@
 import { storyDays } from '../data/storyData';
 import { vocabularyPairs } from '../data/vocabularyData';
 
-// Set the cycle start date to today
-export const CYCLE_START_DATE = new Date(new Date().toISOString().split('T')[0]); // Today as Day 1
+// Set the cycle start date to a fixed date (January 1st, 2024)
+export const CYCLE_START_DATE = new Date('2024-01-01'); // Fixed start date for consistent progression
 
 /**
  * Get a deterministic hash from a date string (YYYY-MM-DD)
@@ -143,4 +143,33 @@ export const getAllDailyContent = (date: Date) => {
 export const getContentForDayNumber = (dayNumber: number) => {
   const testDate = new Date(2024, 0, dayNumber); // January dayNumber, 2024
   return getAllDailyContent(testDate);
+};
+
+// Helper function to get the current day number since cycle start
+export const getCurrentDayNumber = (): number => {
+  const today = new Date();
+  const dayOfYear = Math.floor((today.getTime() - CYCLE_START_DATE.getTime()) / (1000 * 60 * 60 * 24));
+  return dayOfYear + 1; // Add 1 to make it 1-indexed
+};
+
+// Helper function to get the current cycle day (1-30)
+export const getCurrentCycleDay = (): number => {
+  const currentDay = getCurrentDayNumber();
+  return ((currentDay - 1) % 30) + 1; // Returns 1-30
+};
+
+// Function to get current day information
+export const getCurrentDayInfo = () => {
+  const currentDay = getCurrentDayNumber();
+  const cycleDay = getCurrentCycleDay();
+  const today = getTodayDateString();
+  
+  return {
+    absoluteDay: currentDay, // Days since January 1st, 2024
+    cycleDay: cycleDay, // Current day in the 30-day cycle (1-30)
+    date: today,
+    cycleStartDate: CYCLE_START_DATE.toISOString().split('T')[0],
+    isNewCycle: cycleDay === 1,
+    cycleProgress: `${cycleDay}/30`
+  };
 }; 

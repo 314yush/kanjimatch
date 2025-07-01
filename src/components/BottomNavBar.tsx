@@ -26,8 +26,8 @@ interface BottomNavBarProps {
 }
 
 const routeMapping: { [key in AppTab]: string } = {
-    home: '/',
-    leaderboard: '/leaderboard',
+    home: '/app',
+    leaderboard: '/app/leaderboard',
 }
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab }) => {
